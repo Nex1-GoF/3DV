@@ -12,56 +12,85 @@ void UWBP_MissileMonitorBase::NativeConstruct()
 
 	UE_LOG(LogTemp, Warning, TEXT("[UMG] NativeConstruct ½ÇÇàµÊ"));
 
-	/*ApplyRenderTargetToImage(Image_Cam1, RT_Cam1);
-	ApplyRenderTargetToImage(Image_Cam2, RT_Cam2);
-	ApplyRenderTargetToImage(Image_Cam3, RT_Cam3);
-	ApplyRenderTargetToImage(Image_Cam4, RT_Cam4);*/
+	
 }
 
-//void UWBP_MissileMonitorBase::ApplyRenderTargetToImage(UImage* Image, UTextureRenderTarget2D* RT)
-//{
-//	if (!Image || !RT) return;
-//
-//	FSlateBrush Brush;
-//	Brush.SetResourceObject(RT);
-//	Brush.ImageSize = FVector2D(RT->SizeX, RT->SizeY);
-//	Image->SetBrush(Brush);
-//}
+void UWBP_MissileMonitorBase::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	if (signal1) {
+		signal1time += InDeltaTime;
+		float Alpha = FMath::Clamp(signal1time / signalRunTime, 0.f, 1.f);
+		FLinearColor NewColor = NoSignal_1->ColorAndOpacity;
+		NewColor.A = Alpha; 
+		NoSignal_1->SetColorAndOpacity(NewColor);
+		if (signal1time >= signalRunTime)
+		{
+			signal1 = false;
+			signal1time = 0;
+		}
+	}
+	if (signal2) {
+		signal2time += InDeltaTime;
+		float Alpha = FMath::Clamp(signal2time / signalRunTime, 0.f, 1.f);
+		FLinearColor NewColor = NoSignal_2->ColorAndOpacity;
+		NewColor.A = Alpha;
+		NoSignal_2->SetColorAndOpacity(NewColor);
+		if (signal2time >= signalRunTime)
+		{
+			signal2 = false;
+			signal2time = 0;
+		}
+	}
+	if (signal3) {
+		signal3time += InDeltaTime;
+		float Alpha = FMath::Clamp(signal3time / signalRunTime, 0.f, 1.f);
+		FLinearColor NewColor = NoSignal_3->ColorAndOpacity;
+		NewColor.A = Alpha;
+		NoSignal_3->SetColorAndOpacity(NewColor);
+		if (signal3time >= signalRunTime)
+		{
+			signal3 = false;
+			signal3time = 0;
+		}
+	}
+	if (signal4) {
+		signal4time += InDeltaTime;
+		float Alpha = FMath::Clamp(signal4time / signalRunTime, 0.f, 1.f);
+		FLinearColor NewColor = NoSignal_4->ColorAndOpacity;
+		NewColor.A = Alpha;
+		NoSignal_4->SetColorAndOpacity(NewColor);
+		if (signal4time >= signalRunTime)
+		{
+			signal4 = false;
+			signal4time = 0;
+		}
+	}
+}
 
-//void UWBP_MissileMonitorBase::SetRenderTargets(
-//	UTextureRenderTarget2D* InRT_Cam1,
-//	UTextureRenderTarget2D* InRT_Cam2,
-//	UTextureRenderTarget2D* InRT_Cam3,
-//	UTextureRenderTarget2D* InRT_Cam4)
-//{
-//	RT_Cam1 = InRT_Cam1;
-//	RT_Cam2 = InRT_Cam2;
-//	RT_Cam3 = InRT_Cam3;
-//	RT_Cam4 = InRT_Cam4;
-//
-//	UE_LOG(LogTemp, Warning,
-//		TEXT("[UMG] SetRenderTargets È£ÃâµÊ RT:%p %p %p %p"),
-//		RT_Cam1, RT_Cam2, RT_Cam3, RT_Cam4);
-//
-//	ApplyRenderTargetToImage(Image_Cam1, RT_Cam1);
-//	ApplyRenderTargetToImage(Image_Cam2, RT_Cam2);
-//	ApplyRenderTargetToImage(Image_Cam3, RT_Cam3);
-//	ApplyRenderTargetToImage(Image_Cam4, RT_Cam4);
-//}
 
-//void UWBP_MissileMonitorBase::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-//{
-//	Super::NativeTick(MyGeometry, InDeltaTime);
-//	static float Accum = 0.f;
-//	Accum += InDeltaTime;
-//	if (Accum > 1.0f) {
-//		Accum = 0.f;
-//		UE_LOG(LogTemp, Warning,
-//			TEXT("[UMG] ApplyRenderTargetToImage È£ÃâµÊ RT:%p %p %p %p"),
-//			RT_Cam1, RT_Cam2, RT_Cam3, RT_Cam4);
-//	}
-//	ApplyRenderTargetToImage(Image_Cam1, RT_Cam1);
-//	ApplyRenderTargetToImage(Image_Cam2, RT_Cam2);
-//	ApplyRenderTargetToImage(Image_Cam3, RT_Cam3);
-//	ApplyRenderTargetToImage(Image_Cam4, RT_Cam4);
-//}
+void UWBP_MissileMonitorBase::NosignalRun(uint8 id)
+{
+	if (id == 1) {
+		signal1 = true;
+		signal1time = 0;
+		NoSignal_1->ColorAndOpacity.A=0;
+	}
+	else if(id == 2) {
+		signal2 = true;
+		signal2time = 0;
+		NoSignal_2->ColorAndOpacity.A =0;
+	}
+	else if (id == 3) {
+
+		signal3 = true;
+		signal3time = 0;
+
+		NoSignal_3->ColorAndOpacity.A = 0;
+	}
+	else if (id == 4) {
+		signal4 = true;
+		signal4time = 0;
+		NoSignal_4->ColorAndOpacity.A = 0;
+	}
+}

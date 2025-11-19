@@ -36,11 +36,11 @@ public:
 	void ApplyAttitude(uint8 ID, float Pitch, float Yaw);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InitMSL")
-	float OffsetY = 2500.f;   // YÃàÀ» ³Ð°Ô ¹ú¸²
+	float OffsetY = 12500.f;   // YÃàÀ» ³Ð°Ô ¹ú¸²
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InitMSL")
 	float InitX = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InitMSL")
-	float InitZ = 300.f;
+	float InitZ = 1000.f;
 
 	bool bFirstTick = true;
 };
