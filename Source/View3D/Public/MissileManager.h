@@ -43,4 +43,16 @@ public:
 	float InitZ = 1000.f;
 
 	bool bFirstTick = true;
+
+	UFUNCTION(BlueprintCallable)
+	void LaunchMissile(int ID, float Yaw);
+
+	UFUNCTION(BlueprintCallable)
+	void ApplyAttitude(int ID, float Pitch, float Yaw);
+
+	UFUNCTION(BlueprintCallable)
+	void UpdateTargetDistance(int ID, float Distance);
+
+	UFUNCTION(BlueprintCallable)
+	void Explode(int ID);
 };

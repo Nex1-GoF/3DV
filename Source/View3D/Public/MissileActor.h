@@ -101,8 +101,18 @@ public:
 	float TestTargetDistance = 10000.0f;
 	void UpdateTarget(float Distance);
 	bool testtargetflag = false;
+	bool bFirstDistanceReceived = false;
+
+	void ApplyTargetDistance(float NewDistance);
+	float PrevDistance = 0.f;
+	float CurrentDistance = 0.f;
+	float DistanceLerpTime = 0.f;     // 현재 보간 진행 시간
+	float DistanceLerpDuration = 0.f; // 이전 패킷 → 이번 패킷 도착 시간차
+	float LastDistancePacketTime = 0.f;
 
 
+
+	//종말부분
 	void TerminalChange(float inYaw);
 	bool bIsTerminal = false;
 	float TerminalStartTime = 0.f;

@@ -103,7 +103,7 @@ void AMissileActor::Tick(float DeltaTime)
 	}
 	if (mslstate == 3)return;
 	//발사TEST용
-	if (initfire) {
+	/*if (initfire) {
 		inittime += DeltaTime;
 		if (inittime >= 5.0f) {
 
@@ -111,21 +111,9 @@ void AMissileActor::Tick(float DeltaTime)
 			if(MissileID==4)
 			LaunchMissile(-60.f);
 		}
-	}
-	//
+	}*/
 
-	//const float SmoothSpeed = 5.0f;
-
-	//// 보간 필수
-	//float TargetPitchFixed = ShortestAngle(SmoothPitch, TargetPitch);
-	//float TargetYawFixed = ShortestAngle(SmoothYaw, TargetYaw);
-
-	//SmoothPitch = FMath::FInterpTo(SmoothPitch, TargetPitchFixed, DeltaTime, SmoothSpeed);
-	//SmoothYaw = FMath::FInterpTo(SmoothYaw, TargetYawFixed, DeltaTime, SmoothSpeed);
-
-	//// 최종 회전
-	//FQuat QYaw = FQuat(FVector::UpVector, FMath::DegreesToRadians(SmoothYaw));
-	//FQuat QPitch = FQuat(FVector::RightVector, FMath::DegreesToRadians(SmoothPitch));
+	//발사함수틱
 	if (bIsLaunching)
 	{
 		LaunchTime += DeltaTime;
@@ -149,6 +137,7 @@ void AMissileActor::Tick(float DeltaTime)
 			float YawAlpha = (LaunchTime - 2.f) / 2.f; // 0 → 1 (2~4초)
 			YawAlpha = FMath::Clamp(YawAlpha, 0.f, 1.f);
 
+			UE_LOG(LogTemp, Warning, TEXT("Invalid MissileID=%f"), TargetYaw);
 			float NewYaw = FMath::Lerp(InitialYaw, LaunchTargetYaw, YawAlpha);
 			TargetYaw = NewYaw;
 		}
@@ -158,9 +147,12 @@ void AMissileActor::Tick(float DeltaTime)
 		{
 			bIsLaunching = false;
 			TargetRoll = LaunchTargetRoll;
-			TerminalChange(-90.f);
+			//종말태스크 임시실행
+			//TerminalChange(-90.f);
 		}
 	}
+	//
+	//종말태스크 진행
 	if (bIsTerminal)
 	{
 		TerminalStartTime += DeltaTime;
@@ -181,37 +173,63 @@ void AMissileActor::Tick(float DeltaTime)
 			testtargetflag = true;
 		}
 	}
+	//
 
 
-
-	//회전 변경하기
+	//회전 변경하기 이게 사실상 중기유도임!
 	FRotator newrot = FRotator(TargetPitch, TargetYaw, TargetRoll);
 	MisslieMesh->SetRelativeRotation(newrot);
 
-	if (testtargetflag)
+	//타겟생성코드 종말부분
+	if (bFirstDistanceReceived)
 	{
-		TargetStartTime += DeltaTime;
-		float Alpha = FMath::Clamp(TargetStartTime / TargetSpawnTime, 0.f, 1.f);
-		// 거리 10000 → 0 으로 줄어듦
-		float CurDist = FMath::Lerp(TestTargetDistance, 0.f, Alpha);
-		UpdateTarget(CurDist);
-		//기폭 테스트용
-		if (CurDist <= 500) {
-			if (!nosiganlcall) {
-				AbortChange();
-				nosiganlcall = true;
-			}
-			
-		}
-		//
+		DistanceLerpTime += DeltaTime;
+
+		float Alpha = 0.f;
+
+		if (DistanceLerpDuration > 0.f)
+			Alpha = FMath::Clamp(DistanceLerpTime / DistanceLerpDuration, 0.f, 1.f);
+
+		float LerpDist = FMath::Lerp(PrevDistance, CurrentDistance, Alpha);
+
+		UpdateTarget(LerpDist);
 	}
 
 }
 
+void AMissileActor::ApplyTargetDistance(float NewDistance)
+{
+	float Now = GetWorld()->GetTimeSeconds();
+
+	if (!bFirstDistanceReceived)
+	{
+		// 초기 패킷: 생성만 수행
+		PrevDistance = NewDistance;
+		CurrentDistance = NewDistance;
+		LastDistancePacketTime = Now;
+		bFirstDistanceReceived = true;
+
+		// 타겟 생성만 하고 이동은 하지 않는다
+		UpdateTarget(NewDistance);
+		return;
+	}
+
+	// 두 번째 패킷부터는 보간 시작
+	PrevDistance = CurrentDistance;
+	CurrentDistance = NewDistance;
+
+	float NewPacketTime = Now;
+	DistanceLerpDuration = NewPacketTime - LastDistancePacketTime; // ex: 0.25초
+	LastDistancePacketTime = NewPacketTime;
+
+	DistanceLerpTime = 0.f; // 보간 시작
+}
+
 void AMissileActor::ApplyAttitude(float InRoll, float InYaw)
 {
+	if (mslstate != 1)return;
 	TargetRoll = InRoll;
-	TargetYaw = InYaw;
+	TargetYaw = InYaw-90.0f;
 
 	/*UE_LOG(LogTemp, Warning, TEXT("Target Pitch=%f, Yaw=%f"),
 		TargetPitch, TargetYaw);*/
@@ -263,8 +281,9 @@ void AMissileActor::LaunchMissile(float inYaw)
 	FRotator initialRot = MisslieMesh->GetRelativeRotation();
 	InitialRoll = initialRot.Roll;
 	InitialYaw = initialRot.Yaw;
-	LaunchTargetYaw = inYaw;
+	LaunchTargetYaw = inYaw-90;
 	mslstate = 1;
+	UE_LOG(LogTemp, Warning, TEXT("[Missile %d] FireFX Spwan"), MissileID);
 	if (FireFX && BackComp)
 	{
 		UParticleSystemComponent* FirePSC =
@@ -278,7 +297,7 @@ void AMissileActor::LaunchMissile(float inYaw)
 				EAttachLocation::KeepRelativeOffset,
 				true
 			);
-
+		UE_LOG(LogTemp, Warning, TEXT("[Missile %d] FireFX SpwanComplete"), MissileID);
 		if (FirePSC)
 		{
 			FirePSC->SetRelativeLocation(FVector(0, 0, 0));  // 필요하면 미세 위치 조정
@@ -375,6 +394,9 @@ void AMissileActor::NoSignalChange() {
 	}
 	WBP->NosignalRun(MissileID);
 	UE_LOG(LogTemp, Error, TEXT("[Missile %d] NoSignalCall"), MissileID);
+
+
+
 
 }
 

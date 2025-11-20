@@ -65,6 +65,37 @@ void AMissileManager::ApplyAttitude(uint8 ID, float Pitch, float Yaw)
     Missile->ApplyAttitude(Pitch, Yaw);
 }
 
+void AMissileManager::LaunchMissile(int ID, float Yaw)
+{
+
+    UE_LOG(LogTemp, Warning, TEXT("LaunchMissile! id: %d yaw:%f"), ID,Yaw);
+    AMissileActor* Missile = GetMissileByID(ID);
+    if (Missile == nullptr)return;
+    Missile->LaunchMissile(Yaw);
+}
+
+void AMissileManager::ApplyAttitude(int ID, float Pitch, float Yaw)
+{
+    AMissileActor* Missile = GetMissileByID(ID);
+    if (Missile == nullptr)return;
+    Missile->ApplyAttitude(Pitch, Yaw);
+    
+}
+
+void AMissileManager::UpdateTargetDistance(int ID, float Distance)
+{
+    AMissileActor* Missile = GetMissileByID(ID);
+    if (Missile == nullptr)return;
+    Missile->UpdateTarget(Distance);
+    
+}
+
+void AMissileManager::Explode(int ID)
+{
+    AMissileActor* Missile = GetMissileByID(ID);
+    if (Missile == nullptr)return;
+    Missile->AbortChange();
+}
 
 //void AMissileManager::Tick(float DeltaTime)
 //{
