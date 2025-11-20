@@ -153,8 +153,17 @@ void UUdpReceiverComponent::OnUdpMessageReceived(
         float Yaw = Packet.MslYaw * 0.01f;
         float Dist = Packet.TargetDistance * 0.01f;
 
+        if (Packet.FlightStatus == 4) {
+
+            AsyncTask(ENamedThreads::GameThread, [this, ID, Dist]()
+                {
+                    CachedManager->TerminalMissile(ID);
+                    CachedManager->UpdateTargetDistance(ID, Dist);
+                });
+            return;
+        }
         CachedManager->ApplyAttitude(ID, 0.f, Yaw);
-        CachedManager->UpdateTargetDistance(ID, Dist);
+        //CachedManager->UpdateTargetDistance(ID, Dist);
     }
 
     //---------------------------------------------------------
@@ -166,8 +175,10 @@ void UUdpReceiverComponent::OnUdpMessageReceived(
         Packet.FromBytes(Body);
 
         int32 ID = FCStringAnsi::Atoi(Packet.MissileId);
-
-        CachedManager->Explode(ID);
+        AsyncTask(ENamedThreads::GameThread, [this, ID]()
+            {
+                CachedManager->Explode(ID);
+            });
     }
 
     //---------------------------------------------------------

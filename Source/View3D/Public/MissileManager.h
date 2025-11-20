@@ -48,6 +48,9 @@ public:
 	void LaunchMissile(int ID, float Yaw);
 
 	UFUNCTION(BlueprintCallable)
+	void TerminalMissile(int ID);
+
+	UFUNCTION(BlueprintCallable)
 	void ApplyAttitude(int ID, float Pitch, float Yaw);
 
 	UFUNCTION(BlueprintCallable)

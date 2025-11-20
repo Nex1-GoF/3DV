@@ -89,6 +89,15 @@ void AMissileManager::UpdateTargetDistance(int ID, float Distance)
     Missile->UpdateTarget(Distance);
     
 }
+void AMissileManager::TerminalMissile(int ID)
+{
+
+    UE_LOG(LogTemp, Warning, TEXT("TerminalMissile! id: %d"), ID);
+    AMissileActor* Missile = GetMissileByID(ID);
+    if (Missile == nullptr)return;
+    if (Missile->mslstate == 2)return;
+    Missile->TerminalChange(-90.f);
+}
 
 void AMissileManager::Explode(int ID)
 {

@@ -69,6 +69,7 @@ public:
 	float inittime = 0.f;
 	bool initfire = true;
 
+	bool canspawn = false;
 	/** 네트워크 수신 적용 */
 	void ApplyAttitude(float InPitch, float InYaw);
 

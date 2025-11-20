@@ -63,20 +63,12 @@ struct FMslInfoData
     void FromBytes(const uint8* Data)
     {
         memcpy(MissileId, Data, 4);
-
-        MslYaw = ((uint16)Data[4] << 8) |
-            ((uint16)Data[5]);
-
-        TelemetryStatus = Data[6];
-        FlightStatus = (char)Data[7];
-
-        TargetDistance = ((uint32)Data[8] << 24) |
-            ((uint32)Data[9] << 16) |
-            ((uint32)Data[10] << 8) |
-            (uint32)Data[11];
-
-        TargetYaw = ((uint16)Data[12] << 8) |
-            ((uint16)Data[13]);
+        memcpy(&MslYaw, Data+4, 2);
+        memcpy(&TelemetryStatus, Data+6, 1);
+        memcpy(&FlightStatus, Data + 7, 1);
+        memcpy(&TargetDistance, Data + 8, 4);
+        memcpy(&TargetYaw, Data + 12, 2);
+        UE_LOG(LogTemp, Warning, TEXT("LaunchMissile! id: %hs yaw:%d Telemetry:%d FlightStatus:%d TargetDistance:%d TargetYaw:%d"), MissileId, MslYaw, TelemetryStatus, (int)FlightStatus, TargetDistance, TargetYaw);
     }
 };
 

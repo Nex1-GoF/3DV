@@ -156,7 +156,7 @@ void AMissileActor::Tick(float DeltaTime)
 	if (bIsTerminal)
 	{
 		TerminalStartTime += DeltaTime;
-		if (TerminalStartTime <= 2.f)
+		if (TerminalStartTime <= 1.5f)
 		{
 			float YawAlpha = (TerminalStartTime) / 2.f; // 0 → 1 (2~4초)
 			YawAlpha = FMath::Clamp(YawAlpha, 0.f, 1.f);
@@ -166,11 +166,11 @@ void AMissileActor::Tick(float DeltaTime)
 		}
 
 		// ---- (3) 4초 후 종료 ----
-		if (TerminalStartTime >= 2.f)
+		if (TerminalStartTime >= 1.5f)
 		{
 			bIsTerminal = false;
 			TargetYaw = TerminalTargetYaw;
-			testtargetflag = true;
+			if (!canspawn)canspawn = true;
 		}
 	}
 	//
@@ -326,7 +326,7 @@ void AMissileActor::TerminalChange(float inYaw)
 void AMissileActor::UpdateTarget(float Distance)
 {
 	if (!ForwardComp || !MisslieMesh) return;
-
+	if (!canspawn)return;
 	// 1) 방향벡터
 	FVector ForwardVector =
 		(ForwardComp->GetComponentLocation() - MisslieMesh->GetComponentLocation()).GetSafeNormal();
