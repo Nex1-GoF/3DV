@@ -1,7 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "MissileActor.h"
+﻿#include "MissileActor.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/StaticMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -10,114 +7,80 @@
 #include "Target.h"
 #include "MonitorPlayerController.h"
 #include "WBP_MissileMonitorBase.h"
-// Sets default values
+
 AMissileActor::AMissileActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	RootComp=CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+
+	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = RootComp;
 
 	MisslieMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	MisslieMesh->SetupAttachment(RootComp);
 	MisslieMesh->SetRelativeRotation(FRotator(0, -90, -90));
 
-	//앞방향
 	ForwardComp = CreateDefaultSubobject<USceneComponent>(TEXT("Forward"));
 	ForwardComp->SetupAttachment(MisslieMesh);
 	ForwardComp->SetRelativeLocation(FVector(0, 370, 0));
 
-	//앞방향
 	BackComp = CreateDefaultSubobject<USceneComponent>(TEXT("Back"));
 	BackComp->SetupAttachment(MisslieMesh);
 	BackComp->SetRelativeLocation(FVector(0, -300, 0));
 
-
 	CameraComp = CreateDefaultSubobject<USceneComponent>(TEXT("Camera"));
 	CameraComp->SetupAttachment(RootComp);
 
-
-	MisslieCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Capture"));
-	if (MisslieCaptureComponent != nullptr) {
-		MisslieCaptureComponent->SetupAttachment(CameraComp);
-	}
-	else {
-		UE_LOG(LogTemp, Error, TEXT("[Missile] MisslieCaptureComponent NewObject FAILED"));
-	}
+	MisslieCaptureComponent =
+		CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Capture"));
 	MisslieCaptureComponent->SetupAttachment(CameraComp);
 
 	CameraComp->SetRelativeLocation(FVector(-800.f, 0.f, 300.f));
 	CameraComp->SetRelativeRotation(FRotator(-20.f, 0, 0));
-
-	//매 프레임 캡처 대신 필요 시 호출 (성능 ↑)
-	/*MisslieCaptureComponent->bCaptureEveryFrame = false;
-	MisslieCaptureComponent->bCaptureOnMovement = false;*/
-
 }
 
-// Called when the game starts or when spawned
 void AMissileActor::BeginPlay()
 {
 	Super::BeginPlay();
-	//RenderTarget = NewObject<UTextureRenderTarget2D>(this);
-	//RenderTarget->InitAutoFormat(960, 540);  // 원하는 해상도로 설정
-	//RenderTarget->ClearColor = FLinearColor::Black;
-	//RenderTarget->UpdateResource();
 
-	//// SceneCapture에 연결
-	//if (MisslieCaptureComponent != nullptr) {
-	//	MisslieCaptureComponent->TextureTarget = RenderTarget; 
-	//	UE_LOG(LogTemp, Warning,
-	//		TEXT("[Missile] RenderTargets 호출됨 RT:%p"),
-	//		RenderTarget); 
-	//	UE_LOG(LogTemp, Warning,
-	//		TEXT("[Missile] TextureTarget 호출됨 TT:%p"),
-	//		*(MisslieCaptureComponent->TextureTarget));
-	//}
-	//else {
-	//	UE_LOG(LogTemp, Error, TEXT("[Missile] MisslieCaptureComponent is nullptr"));
-	//}
 	TargetYaw = -90;
 	TargetRoll = -90;
 	TargetPitch = 0;
-	FRotator newrot = FRotator(TargetPitch, TargetYaw, TargetRoll);
 
-	MisslieMesh->SetRelativeRotation(newrot);
+	// Raw도 초기화 (중기유도 시작 시 급점프 방지)
+	RawYaw = TargetYaw;
+	RawRoll = TargetRoll;
+
+	MisslieMesh->SetRelativeRotation(FRotator(TargetPitch, TargetYaw, TargetRoll));
 	MisslieCaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 
 	canspawn = false;
-
-
 }
 
-
-// Called every frame
 void AMissileActor::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime); 
+	Super::Tick(DeltaTime);
+
+	// =========================
+	// 1) Capture
+	// =========================
 	static float Accum = 0.f;
 	Accum += DeltaTime;
-	if (Accum > 0.01f) {
-		MisslieCaptureComponent->CaptureSceneDeferred();
+	if (Accum > 0.01f)
+	{
+		if (MisslieCaptureComponent)
+			MisslieCaptureComponent->CaptureSceneDeferred();
 		Accum = 0.01f;
 	}
-	if (mslstate == 3)return;
-	//발사TEST용
-	/*if (initfire) {
-		inittime += DeltaTime;
-		if (inittime >= 5.0f) {
 
-			initfire = false;
-			if(MissileID==4)
-			LaunchMissile(-60.f);
-		}
-	}*/
+	if (mslstate == 3) return;
 
-	//발사함수틱
+	// =========================
+	// 2) Launch phase
+	// =========================
 	if (bIsLaunching)
 	{
 		LaunchTime += DeltaTime;
-		// ---- (1) 4초간 Z 상승 ----
+
 		float ZProgress = FMath::Clamp(LaunchTime / 4.f, 0.f, 1.f);
 		float NewZ = InitialZ + (LaunchIncrease * ZProgress);
 
@@ -125,7 +88,7 @@ void AMissileActor::Tick(float DeltaTime)
 		Loc.Z = NewZ;
 		SetActorLocation(Loc);
 
-		// ---- (2) 마지막 2초간 Roll 보정(-90 → 0) ----
+		// 마지막 2초 Roll/Yaw 보정
 		if (LaunchTime >= 2.f)
 		{
 			float RollAlpha = (LaunchTime - 2.f) / 2.f; // 0 → 1 (2~4초)
@@ -137,70 +100,161 @@ void AMissileActor::Tick(float DeltaTime)
 			float YawAlpha = (LaunchTime - 2.f) / 2.f; // 0 → 1 (2~4초)
 			YawAlpha = FMath::Clamp(YawAlpha, 0.f, 1.f);
 
-			UE_LOG(LogTemp, Warning, TEXT("Invalid MissileID=%f"), TargetYaw);
 			float NewYaw = FMath::Lerp(InitialYaw, LaunchTargetYaw, YawAlpha);
 			TargetYaw = NewYaw;
+			UE_LOG(LogTemp, Error, TEXT("Invalid Yaw=%f"), NewYaw);
 		}
 
-		// ---- (3) 4초 후 종료 ----
 		if (LaunchTime >= 4.f)
 		{
 			bIsLaunching = false;
 			TargetRoll = LaunchTargetRoll;
-			//종말태스크 임시실행
-			//TerminalChange(-90.f);
+
+			// Launch 종료 직후 Raw를 Target으로 맞춰서
+			// 중기유도 시작 시 튐 없게 함
+			RawYaw = TargetYaw;
+			RawRoll = TargetRoll;
 		}
 	}
-	//
-	//종말태스크 진행
+
+	// =========================
+	// 3) Terminal phase
+	// =========================
 	if (bIsTerminal)
 	{
 		TerminalStartTime += DeltaTime;
+
 		if (TerminalStartTime <= 1.5f)
 		{
-			float YawAlpha = (TerminalStartTime) / 2.f; // 0 → 1 (2~4초)
-			YawAlpha = FMath::Clamp(YawAlpha, 0.f, 1.f);
-
-			float NewYaw = FMath::Lerp(InitialYaw, TerminalTargetYaw, YawAlpha);
-			TargetYaw = NewYaw;
+			float Alpha = FMath::Clamp(TerminalStartTime / 1.5f, 0.f, 1.f);
+			TargetYaw = FMath::Lerp(InitialYaw, TerminalTargetYaw, Alpha);
 		}
 
-		// ---- (3) 4초 후 종료 ----
 		if (TerminalStartTime >= 1.5f)
 		{
 			bIsTerminal = false;
 			TargetYaw = TerminalTargetYaw;
-			if (!canspawn)canspawn = true;
+
+			RawYaw = TargetYaw; // terminal 끝나고도 튐 방지
+			if (!canspawn) canspawn = true;
 		}
 	}
-	//
 
+	// =========================
+	// 4) Midcourse UDP smoothing
+	//    - Launch/Terminal 중엔 절대 건드리지 않음
+	// =========================
+	if (!bIsLaunching && !bIsTerminal && mslstate == 1)
+	{
+		TargetYaw = FMath::FInterpTo(TargetYaw, RawYaw, DeltaTime, UdpInterpSpeed);
+		TargetRoll = FMath::FInterpTo(TargetRoll, RawRoll, DeltaTime, UdpInterpSpeed);
+	}
 
-	//회전 변경하기 이게 사실상 중기유도임!
-	FRotator newrot = FRotator(TargetPitch, TargetYaw, TargetRoll);
-	MisslieMesh->SetRelativeRotation(newrot);
+	// =========================
+	// 5) Apply final rotation (항상 마지막)
+	// =========================
 
-	//타겟생성코드 종말부분
-	
+	FRotator NewRot(TargetPitch, TargetYaw, TargetRoll);
+	MisslieMesh->SetRelativeRotation(NewRot);
 
+	// (종말유도 타겟 생성/이동 쪽은 너가 이어서 넣으면 됨)
+	if (TargetActor && ForwardComp && MisslieMesh)
+	{
+		// 🔥 Abort 모션 진행 중이면 1초 안에 거리 0으로 줄이기
+		if (bAbortMotion)
+		{
+			AbortStartTime += DeltaTime;
+
+			float Alpha = FMath::Clamp(AbortStartTime / AbortDuration, 0.f, 1.f);
+			UE_LOG(LogTemp, Error, TEXT("Alpha=%f"), Alpha);
+			// SmoothDistance를 0까지 선형 보간
+			SmoothDistance = FMath::Lerp(AbortInitialDistance, 0.f, Alpha);
+
+			if (Alpha >= 1.f)
+			{
+				bAbortMotion = false;
+				SmoothDistance = 0.f; // 확실히 0
+				UE_LOG(LogTemp, Error, TEXT("Alphaend=%f"), Alpha);
+			}
+		}
+		else
+		{
+			// 기존 중기유도 거리 보간
+			SmoothDistance = FMath::FInterpTo(SmoothDistance, RawDistance, DeltaTime, DistanceInterpSpeed);
+		}
+
+		// 위치 적용
+		FVector ForwardVector =
+			(ForwardComp->GetComponentLocation() - MisslieMesh->GetComponentLocation()).GetSafeNormal();
+
+		FVector TargetLoc =
+			ForwardComp->GetComponentLocation() + ForwardVector * SmoothDistance;
+
+		FRotator TargetRot = FRotator(0, RawTargetYaw - 180, 0);
+
+		TargetActor->SetActorLocation(TargetLoc);
+		TargetActor->SetActorRotation(TargetRot);
+		if (TargetActor->TargetMesh)
+		{
+			FVector BackPos = FVector(1, 0, 0) * (SmoothDistance * 0.2f);
+			TargetActor->TargetMesh->SetRelativeLocation(BackPos);
+		}
+		if (SmoothDistance==0.f) {
+			mslstate = 3;
+			if (ExplosionFX && ForwardComp)
+			{
+				FVector SpawnLoc = ForwardComp->GetComponentLocation();
+				FRotator SpawnRot = ForwardComp->GetComponentRotation();
+				FVector SpawnScale(5.f, 5.f, 5.f);
+
+				UGameplayStatics::SpawnEmitterAtLocation(
+					GetWorld(),
+					ExplosionFX,
+					SpawnLoc,
+					SpawnRot,
+					SpawnScale,
+					true
+				);
+			}
+
+			NoSignalChange();
+		}
+	}
 }
 
+float ShortAngle(float From, float To)
+{
+	float Delta = FMath::Fmod(To - From + 540.f, 360.f) - 180.f;
+	return From + Delta;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// UDP Attitude
+//////////////////////////////////////////////////////////////////////////
 
 void AMissileActor::ApplyAttitude(float InRoll, float InYaw)
 {
-	if (mslstate != 1)return;
-	TargetRoll = InRoll;
-	TargetYaw = InYaw-90.0f;
+	// 중기유도(state 1)에서만 UDP 반영
+	if (mslstate != 1) return; // 중기유도만 적용
 
-	/*UE_LOG(LogTemp, Warning, TEXT("Target Pitch=%f, Yaw=%f"),
-		TargetPitch, TargetYaw);*/
+	RawRoll = InRoll;
+
+	float NewRawYaw = InYaw - 90.0f;
+
+	// 현재 기준으로 최단 경로로 RawYaw 조정
+	float CurrentYaw = MisslieMesh->GetRelativeRotation().Yaw;
+	RawYaw = ShortAngle(CurrentYaw, NewRawYaw);
 }
+
+//////////////////////////////////////////////////////////////////////////
+// RenderTarget
+//////////////////////////////////////////////////////////////////////////
 
 void AMissileActor::SetMissileID(uint8 InID)
 {
-	MissileID = InID; 
+	MissileID = InID;
 	ApplyRenderTargetByID();
-
 }
 
 void AMissileActor::ApplyRenderTargetByID()
@@ -231,20 +285,33 @@ void AMissileActor::ApplyRenderTargetByID()
 
 	UE_LOG(LogTemp, Warning,
 		TEXT("Missile %d assigned RT=%p"), MissileID, RT);
-
 }
+
+//////////////////////////////////////////////////////////////////////////
+// Launch
+//////////////////////////////////////////////////////////////////////////
 
 void AMissileActor::LaunchMissile(float inYaw)
 {
 	bIsLaunching = true;
 	LaunchTime = 0.f;
+
 	InitialZ = GetActorLocation().Z;
+
 	FRotator initialRot = MisslieMesh->GetRelativeRotation();
 	InitialRoll = initialRot.Roll;
 	InitialYaw = initialRot.Yaw;
-	LaunchTargetYaw = inYaw-90;
-	mslstate = 1;
-	UE_LOG(LogTemp, Warning, TEXT("[Missile %d] FireFX Spwan"), MissileID);
+	// 목표 Yaw (UDP로 받은 것)
+	float smoothTargetYaw = inYaw - 90.0f;
+
+	// 최단 회전 경로 목표값 계산!!
+	LaunchTargetYaw = ShortAngle(InitialYaw, smoothTargetYaw);
+	//LaunchTargetYaw = inYaw - 90.f;
+
+	mslstate = 1; // launch 이후 중기유도 진입한다고 가정(네 구조 유지)
+
+	UE_LOG(LogTemp, Warning, TEXT("[Missile %d] FireFX Spawn"), MissileID);
+
 	if (FireFX && BackComp)
 	{
 		UParticleSystemComponent* FirePSC =
@@ -253,137 +320,116 @@ void AMissileActor::LaunchMissile(float inYaw)
 				BackComp,
 				NAME_None,
 				FVector::ZeroVector,
-				FRotator(0,0,-90),
+				FRotator(0, 0, -90),
 				FVector(2.f, 2.f, 2.f),
 				EAttachLocation::KeepRelativeOffset,
 				true
 			);
-		UE_LOG(LogTemp, Warning, TEXT("[Missile %d] FireFX SpwanComplete"), MissileID);
+
 		if (FirePSC)
 		{
-			FirePSC->SetRelativeLocation(FVector(0, 0, 0));  // 필요하면 미세 위치 조정
-			UE_LOG(LogTemp, Warning, TEXT("[Missile %d] FireFX Attached"), MissileID);
+			FirePSC->SetRelativeLocation(FVector::ZeroVector);
 			FirePSC->CustomTimeDilation = 1.0f;
 		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("[Missile %d] Failed to spawn FireFX"), MissileID);
-		}
 	}
-
 }
 
+//////////////////////////////////////////////////////////////////////////
+// Terminal
+//////////////////////////////////////////////////////////////////////////
 
 void AMissileActor::TerminalChange(float inYaw)
 {
 	bIsTerminal = true;
 	TerminalStartTime = 0.f;
+
 	FRotator initialRot = MisslieMesh->GetRelativeRotation();
 	InitialYaw = initialRot.Yaw;
+
 	TerminalTargetYaw = inYaw;
 	mslstate = 2;
 }
 
-void AMissileActor::UpdateTarget(float Distance,float yaw)
-{
-	if (!ForwardComp || !MisslieMesh) return;
-	if (!canspawn)return;
-	// 1) 방향벡터
-	FVector ForwardVector =
-		(ForwardComp->GetComponentLocation() - MisslieMesh->GetComponentLocation()).GetSafeNormal();
+//////////////////////////////////////////////////////////////////////////
+// Target
+//////////////////////////////////////////////////////////////////////////
 
-	// 2) 목표 위치
-	FVector TargetLoc =
-		ForwardComp->GetComponentLocation() + ForwardVector * Distance;
-	UE_LOG(LogTemp, Error, TEXT("SpawnDistance"), MissileID);
-	FRotator TargetRot = FRotator(0, yaw - 90, 0);
-	// 3) 타겟 최초 생성
+void AMissileActor::UpdateTarget(float Distance, float yaw)
+{
+	// UDP로 받은 원본 값 저장
+	RawDistance = Distance*5;
+	RawTargetYaw = yaw;
+
+	// 타겟이 아직 없으면 생성만 한다
+	if (!ForwardComp || !MisslieMesh) return;
+	if (!canspawn) return;
+
+	// 최초 생성 시는 그대로 생성해야 함
 	if (TargetActor == nullptr)
 	{
+		FVector ForwardVector =
+			(ForwardComp->GetComponentLocation() - MisslieMesh->GetComponentLocation()).GetSafeNormal();
+
+		FVector TargetLoc =
+			ForwardComp->GetComponentLocation() + ForwardVector * RawDistance;
+
+		FRotator TargetRot = FRotator(0, RawTargetYaw - 180, 0);
+
 		if (!TargetClass)
 		{
 			UE_LOG(LogTemp, Error, TEXT("TargetClass is NOT set!"));
 			return;
 		}
 
-		FActorSpawnParameters Params;
-		Params.Owner = this;
-
 		TargetActor = GetWorld()->SpawnActor<ATarget>(
 			TargetClass,
 			TargetLoc,
-			TargetRot,
-			Params
+			TargetRot
 		);
-
+		if (TargetActor->TargetMesh)
+		{
+			FVector BackPos = FVector(1,0,0) * (RawDistance * 0.2f);
+			TargetActor->TargetMesh->SetRelativeLocation(BackPos);
+		}
 		if (!TargetActor)
 		{
 			UE_LOG(LogTemp, Error, TEXT("Target spawn failed!"));
 			return;
 		}
-		//TargetActor->TargetMesh->SetOnlyOwnerSee(true);
-		UE_LOG(LogTemp, Warning, TEXT("★ Target created at %d"),
-			MissileID);
-
+		SmoothDistance = RawDistance;
+		UE_LOG(LogTemp, Warning, TEXT("★ Target created at %d"), MissileID);
 	}
-
-	// 4) 이후 계속 이동
-	TargetActor->SetActorLocation(TargetLoc);
-	TargetActor->SetActorRotation(TargetRot);
 }
 
-void AMissileActor::NoSignalChange() {
-	//GetPlayerController Cast to AMonitorPlayerController
-	//and AMonitorPlayerController.MissileManagerClass.NosignalRun(MisslieID)
+//////////////////////////////////////////////////////////////////////////
+// UI Signal / Abort
+//////////////////////////////////////////////////////////////////////////
+
+void AMissileActor::NoSignalChange()
+{
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Missile %d] NoSignalChange: PlayerController not found"), MissileID);
-		return;
-	}
-	// 2) AMonitorPlayerController로 캐스팅
+	if (!PC) return;
+
 	AMonitorPlayerController* MPC = Cast<AMonitorPlayerController>(PC);
-	if (!MPC)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Missile %d] NoSignalChange: Cast to AMonitorPlayerController failed"), MissileID);
-		return;
-	}
+	if (!MPC) return;
+
 	UWBP_MissileMonitorBase* WBP = MPC->GetMonitorWidget();
-	// 3) WBP 가져오기
-	if (!WBP)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Missile %d] NoSignalChange: WBP is nullptr"), MissileID);
-		return;
-	}
+	if (!WBP) return;
+
 	WBP->NosignalRun(MissileID);
-	UE_LOG(LogTemp, Error, TEXT("[Missile %d] NoSignalCall"), MissileID);
-
-
-
-
 }
 
 void AMissileActor::AbortChange()
 {
-	NoSignalChange();
-	mslstate = 3; if (ExplosionFX && ForwardComp)
+	if (TargetActor)
 	{
-		FVector SpawnLoc = ForwardComp->GetComponentLocation();
-		FRotator SpawnRot = ForwardComp->GetComponentRotation(); 
-		FVector SpawnScale = FVector(5.f, 5.f, 5.f);
-		UGameplayStatics::SpawnEmitterAtLocation(
-			GetWorld(),
-			ExplosionFX,
-			SpawnLoc,
-			SpawnRot,
-			SpawnScale,
-			true
-		);
-
-		UE_LOG(LogTemp, Warning, TEXT("[Missile %d] Explosion FX spawned"), MissileID);
+		UE_LOG(LogTemp, Error, TEXT("bAbortMotion"));
+		bAbortMotion = true;
+		AbortStartTime = 0.f;
+		AbortInitialDistance = SmoothDistance; // 현 시점 거리 저장
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Missile %d] ExplosionFX or ForwardComp is NULL"), MissileID);
+	else {
+		UE_LOG(LogTemp, Error, TEXT("bAbortMotion fail"));
 	}
+	
 }

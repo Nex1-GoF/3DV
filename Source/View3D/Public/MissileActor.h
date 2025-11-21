@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -11,6 +9,7 @@ class USceneComponent;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
 class ATarget;
+class UParticleSystem;
 
 UCLASS()
 class VIEW3D_API AMissileActor : public AActor
@@ -18,16 +17,14 @@ class VIEW3D_API AMissileActor : public AActor
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
 	AMissileActor();
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
 public:
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Mesh")
 	USceneComponent* RootComp;
@@ -59,71 +56,108 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Missile")
 	uint8 MissileID = 1;
 
-	/** 네트워크로 받은 순수 Raw Pitch/Yaw */
+	// =======================
+	//  Guidance / Attitude
+	// =======================
+
+	/** 네트워크(UDP)로 받은 목표값 (Raw) */
+	float RawYaw = 0.f;
+	float RawRoll = 0.f;
+
+	/** 실제 적용되는 자세값 */
 	float TargetPitch = 0.f;
 	float TargetYaw = 0.f;
 	float TargetRoll = 0.f;
-	/** 실제 렌더링할 보간된 Pitch/Yaw */
-	float SmoothPitch = 0.f;
-	float SmoothYaw = 0.f;
-	float inittime = 0.f;
-	bool initfire = true;
+
+	/** UDP 보간 속도 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Guidance")
+	float UdpInterpSpeed = 6.f;   // 5~12 추천
 
 	bool canspawn = false;
-	/** 네트워크 수신 적용 */
-	void ApplyAttitude(float InPitch, float InYaw);
+
+	/** 네트워크 수신 적용 (중기유도 구간에서만 Raw 업데이트) */
+	void ApplyAttitude(float InRoll, float InYaw);
 
 	void SetMissileID(uint8 InID);
-
 	void ApplyRenderTargetByID();
 
+	// =======================
+	//  Launch Phase
+	// =======================
 	void LaunchMissile(float inYaw);
 
 	bool bIsLaunching = false;
 	float LaunchTime = 0.f;
 	float fireTime = 4.f;
-	float InitialZ = 0.f;       // 발사 시작시 Z 기록
-	float LaunchIncrease = 300000.f; // 4초 동안 증가할 Z 높이
-	float InitialRoll = -90.f;  // 시작 Roll 값
-	float LaunchTargetRoll = 0.f;     // 최종 Roll 값
-	float InitialYaw = 0;
+
+	float InitialZ = 0.f;
+	float LaunchIncrease = 300000.f;
+
+	float InitialRoll = -90.f;
+	float LaunchTargetRoll = 0.f;
+
+	float InitialYaw = 0.f;
 	float LaunchTargetYaw = 0.f;
 
-
-	//타겟생성부분
+	// =======================
+	// Target spawn & move
+	// =======================
 	UPROPERTY(EditAnywhere, Category = "Target")
 	TSubclassOf<ATarget> TargetClass;
 
 	UPROPERTY()
 	ATarget* TargetActor = nullptr;
+
 	double TargetSpawnTime = 3.0;
 	double TargetStartTime = 0.0;
 	float CurrentTargetDistance = 0.0f;
 	float TestTargetDistance = 10000.0f;
-	void UpdateTarget(float Distance,float yaw);
+
+	void UpdateTarget(float Distance, float yaw);
 	bool testtargetflag = false;
 
+	// 거리 보간 관련(네가 미리 넣은 변수 유지)
 	float PrevDistance = 0.f;
 	float CurrentDistance = 0.f;
-	float DistanceLerpTime = 0.f;     // 현재 보간 진행 시간
-	float DistanceLerpDuration = 0.f; // 이전 패킷 → 이번 패킷 도착 시간차
+	float DistanceLerpTime = 0.f;
+	float DistanceLerpDuration = 0.f;
 	float LastDistancePacketTime = 0.f;
 
-
-
-	//종말부분
+	// =======================
+	// Terminal Phase
+	// =======================
 	void TerminalChange(float inYaw);
+
 	bool bIsTerminal = false;
 	float TerminalStartTime = 0.f;
 	float TerminalTime = 2.f;
 	float TerminalTargetYaw = 0.f;
 
+	// =======================
+	// State
+	// 0: idle / 1: midcourse(UDP) / 2: terminal / 3: abort
+	// =======================
 	int mslstate = 0;
 
 	void NoSignalChange();
 	bool nosiganlcall = false;
 
-
 	void AbortChange();
 
-};
+
+	// Distance smoothing
+	float RawDistance = 0.f;      // UDP에서 받은 원본 거리
+	float SmoothDistance = 0.f;   // Tick에서 보간된 거리
+	float DistanceInterpSpeed = 1.f; // 보간 속도 (2~5 추천)
+
+	// Yaw smoothing option (원하면 사용)
+	float RawTargetYaw = 0.f;
+
+
+
+	//abort
+	bool bAbortMotion = false;
+	float AbortStartTime = 0.f;
+	float AbortInitialDistance = 0.f;
+	float AbortDuration = 1.0f;   // 1초 안에 0까지 좁힘
+};	
