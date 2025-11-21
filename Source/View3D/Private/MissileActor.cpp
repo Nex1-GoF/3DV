@@ -36,6 +36,13 @@ AMissileActor::AMissileActor()
 
 	CameraComp->SetRelativeLocation(FVector(-800.f, 0.f, 300.f));
 	CameraComp->SetRelativeRotation(FRotator(-20.f, 0, 0));
+
+	MisslieCaptureComponent->PostProcessSettings.bOverride_ColorSaturation = true;
+	MisslieCaptureComponent->PostProcessSettings.ColorSaturation.W = 0.f; // 0 = 완전 흑백
+
+	// 필요하면 Intensity도 줄일 수 있음
+	MisslieCaptureComponent->PostProcessSettings.bOverride_ColorContrast = true;
+	MisslieCaptureComponent->PostProcessSettings.ColorContrast = FVector4(1, 1, 1, 1);
 }
 
 void AMissileActor::BeginPlay()
@@ -52,7 +59,13 @@ void AMissileActor::BeginPlay()
 
 	MisslieMesh->SetRelativeRotation(FRotator(TargetPitch, TargetYaw, TargetRoll));
 	MisslieCaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
+	if (MisslieCaptureComponent)
+	{
+		auto& PPS = MisslieCaptureComponent->PostProcessSettings;
 
+		PPS.bOverride_ColorSaturation = true;
+		PPS.ColorSaturation = FVector4(0.f, 0.f, 0.f, 0.f); // 완전 흑백
+	}
 	canspawn = false;
 }
 
@@ -216,7 +229,7 @@ void AMissileActor::Tick(float DeltaTime)
 					true
 				);
 			}
-
+			TargetActor->Destroy();
 			NoSignalChange();
 		}
 	}

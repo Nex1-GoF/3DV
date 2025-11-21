@@ -20,7 +20,7 @@ void UWBP_MissileMonitorBase::NativeTick(const FGeometry& MyGeometry, float InDe
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	if (signal1) {
 		signal1time += InDeltaTime;
-		float Alpha = FMath::Clamp(signal1time / signalRunTime, 0.f, 1.f);
+		float Alpha = FMath::Clamp(signal1time / signalRunTime, 0.f, 0.5f);
 		FLinearColor NewColor = NoSignal_1->ColorAndOpacity;
 		NewColor.A = Alpha; 
 		NoSignal_1->SetColorAndOpacity(NewColor);
@@ -32,7 +32,7 @@ void UWBP_MissileMonitorBase::NativeTick(const FGeometry& MyGeometry, float InDe
 	}
 	if (signal2) {
 		signal2time += InDeltaTime;
-		float Alpha = FMath::Clamp(signal2time / signalRunTime, 0.f, 1.f);
+		float Alpha = FMath::Clamp(signal2time / signalRunTime, 0.f, 0.5f);
 		FLinearColor NewColor = NoSignal_2->ColorAndOpacity;
 		NewColor.A = Alpha;
 		NoSignal_2->SetColorAndOpacity(NewColor);
@@ -44,7 +44,7 @@ void UWBP_MissileMonitorBase::NativeTick(const FGeometry& MyGeometry, float InDe
 	}
 	if (signal3) {
 		signal3time += InDeltaTime;
-		float Alpha = FMath::Clamp(signal3time / signalRunTime, 0.f, 1.f);
+		float Alpha = FMath::Clamp(signal3time / signalRunTime, 0.f, 0.5f);
 		FLinearColor NewColor = NoSignal_3->ColorAndOpacity;
 		NewColor.A = Alpha;
 		NoSignal_3->SetColorAndOpacity(NewColor);
@@ -56,7 +56,7 @@ void UWBP_MissileMonitorBase::NativeTick(const FGeometry& MyGeometry, float InDe
 	}
 	if (signal4) {
 		signal4time += InDeltaTime;
-		float Alpha = FMath::Clamp(signal4time / signalRunTime, 0.f, 1.f);
+		float Alpha = FMath::Clamp(signal4time / signalRunTime, 0.f, 0.5f);
 		FLinearColor NewColor = NoSignal_4->ColorAndOpacity;
 		NewColor.A = Alpha;
 		NoSignal_4->SetColorAndOpacity(NewColor);
