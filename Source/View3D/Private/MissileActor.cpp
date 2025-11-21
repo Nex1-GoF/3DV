@@ -85,7 +85,7 @@ void AMissileActor::BeginPlay()
 	MisslieMesh->SetRelativeRotation(newrot);
 	MisslieCaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 
-
+	canspawn = false;
 
 
 }
@@ -181,49 +181,10 @@ void AMissileActor::Tick(float DeltaTime)
 	MisslieMesh->SetRelativeRotation(newrot);
 
 	//타겟생성코드 종말부분
-	if (bFirstDistanceReceived)
-	{
-		DistanceLerpTime += DeltaTime;
-
-		float Alpha = 0.f;
-
-		if (DistanceLerpDuration > 0.f)
-			Alpha = FMath::Clamp(DistanceLerpTime / DistanceLerpDuration, 0.f, 1.f);
-
-		float LerpDist = FMath::Lerp(PrevDistance, CurrentDistance, Alpha);
-
-		UpdateTarget(LerpDist);
-	}
+	
 
 }
 
-void AMissileActor::ApplyTargetDistance(float NewDistance)
-{
-	float Now = GetWorld()->GetTimeSeconds();
-
-	if (!bFirstDistanceReceived)
-	{
-		// 초기 패킷: 생성만 수행
-		PrevDistance = NewDistance;
-		CurrentDistance = NewDistance;
-		LastDistancePacketTime = Now;
-		bFirstDistanceReceived = true;
-
-		// 타겟 생성만 하고 이동은 하지 않는다
-		UpdateTarget(NewDistance);
-		return;
-	}
-
-	// 두 번째 패킷부터는 보간 시작
-	PrevDistance = CurrentDistance;
-	CurrentDistance = NewDistance;
-
-	float NewPacketTime = Now;
-	DistanceLerpDuration = NewPacketTime - LastDistancePacketTime; // ex: 0.25초
-	LastDistancePacketTime = NewPacketTime;
-
-	DistanceLerpTime = 0.f; // 보간 시작
-}
 
 void AMissileActor::ApplyAttitude(float InRoll, float InYaw)
 {
@@ -323,7 +284,7 @@ void AMissileActor::TerminalChange(float inYaw)
 	mslstate = 2;
 }
 
-void AMissileActor::UpdateTarget(float Distance)
+void AMissileActor::UpdateTarget(float Distance,float yaw)
 {
 	if (!ForwardComp || !MisslieMesh) return;
 	if (!canspawn)return;
@@ -334,7 +295,8 @@ void AMissileActor::UpdateTarget(float Distance)
 	// 2) 목표 위치
 	FVector TargetLoc =
 		ForwardComp->GetComponentLocation() + ForwardVector * Distance;
-
+	UE_LOG(LogTemp, Error, TEXT("SpawnDistance"), MissileID);
+	FRotator TargetRot = FRotator(0, yaw - 90, 0);
 	// 3) 타겟 최초 생성
 	if (TargetActor == nullptr)
 	{
@@ -350,7 +312,7 @@ void AMissileActor::UpdateTarget(float Distance)
 		TargetActor = GetWorld()->SpawnActor<ATarget>(
 			TargetClass,
 			TargetLoc,
-			FRotator::ZeroRotator,
+			TargetRot,
 			Params
 		);
 
@@ -367,6 +329,7 @@ void AMissileActor::UpdateTarget(float Distance)
 
 	// 4) 이후 계속 이동
 	TargetActor->SetActorLocation(TargetLoc);
+	TargetActor->SetActorRotation(TargetRot);
 }
 
 void AMissileActor::NoSignalChange() {

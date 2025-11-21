@@ -100,11 +100,9 @@ public:
 	double TargetStartTime = 0.0;
 	float CurrentTargetDistance = 0.0f;
 	float TestTargetDistance = 10000.0f;
-	void UpdateTarget(float Distance);
+	void UpdateTarget(float Distance,float yaw);
 	bool testtargetflag = false;
-	bool bFirstDistanceReceived = false;
 
-	void ApplyTargetDistance(float NewDistance);
 	float PrevDistance = 0.f;
 	float CurrentDistance = 0.f;
 	float DistanceLerpTime = 0.f;     // 현재 보간 진행 시간

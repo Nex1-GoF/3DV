@@ -151,14 +151,14 @@ void UUdpReceiverComponent::OnUdpMessageReceived(
         int32 ID = FCStringAnsi::Atoi(Packet.MissileId);
 
         float Yaw = Packet.MslYaw * 0.01f;
-        float Dist = Packet.TargetDistance * 0.01f;
-
+        float Dist = Packet.TargetDistance;
+        float TargetYaw = Packet.TargetYaw;
         if (Packet.FlightStatus == 4) {
 
-            AsyncTask(ENamedThreads::GameThread, [this, ID, Dist]()
+            AsyncTask(ENamedThreads::GameThread, [this, ID, Dist, TargetYaw]()
                 {
                     CachedManager->TerminalMissile(ID);
-                    CachedManager->UpdateTargetDistance(ID, Dist);
+                    CachedManager->UpdateTargetDistance(ID, Dist, TargetYaw);
                 });
             return;
         }

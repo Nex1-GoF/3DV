@@ -82,11 +82,11 @@ void AMissileManager::ApplyAttitude(int ID, float Pitch, float Yaw)
     
 }
 
-void AMissileManager::UpdateTargetDistance(int ID, float Distance)
+void AMissileManager::UpdateTargetDistance(int ID, float Distance,float yaw)
 {
     AMissileActor* Missile = GetMissileByID(ID);
     if (Missile == nullptr)return;
-    Missile->UpdateTarget(Distance);
+    Missile->UpdateTarget(Distance,yaw);
     
 }
 void AMissileManager::TerminalMissile(int ID)

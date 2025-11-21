@@ -54,7 +54,7 @@ public:
 	void ApplyAttitude(int ID, float Pitch, float Yaw);
 
 	UFUNCTION(BlueprintCallable)
-	void UpdateTargetDistance(int ID, float Distance);
+	void UpdateTargetDistance(int ID, float Distance,float yaw);
 
 	UFUNCTION(BlueprintCallable)
 	void Explode(int ID);
