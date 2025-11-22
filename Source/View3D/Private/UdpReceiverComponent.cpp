@@ -163,6 +163,8 @@ void UUdpReceiverComponent::OnUdpMessageReceived(
             return;
         }
         CachedManager->ApplyAttitude(ID, 0.f, Yaw);
+        uint8 tel=Packet.TelemetryStatus;
+        CachedManager->UpdateTelemetry(ID, tel);
         //CachedManager->UpdateTargetDistance(ID, Dist);
     }
 

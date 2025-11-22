@@ -71,7 +71,7 @@ public:
 
 	/** UDP 보간 속도 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Guidance")
-	float UdpInterpSpeed = 6.f;   // 5~12 추천
+	float UdpInterpSpeed = 3.f;   // 5~12 추천
 
 	bool canspawn = false;
 
@@ -145,10 +145,11 @@ public:
 	void AbortChange();
 
 
+	void TelemetryChange(uint8 TelemetryByte);
 	// Distance smoothing
 	float RawDistance = 0.f;      // UDP에서 받은 원본 거리
 	float SmoothDistance = 0.f;   // Tick에서 보간된 거리
-	float DistanceInterpSpeed = 1.f; // 보간 속도 (2~5 추천)
+	float DistanceInterpSpeed = 0.1f; // 보간 속도 (2~5 추천)
 
 	// Yaw smoothing option (원하면 사용)
 	float RawTargetYaw = 0.f;
@@ -159,5 +160,5 @@ public:
 	bool bAbortMotion = false;
 	float AbortStartTime = 0.f;
 	float AbortInitialDistance = 0.f;
-	float AbortDuration = 1.0f;   // 1초 안에 0까지 좁힘
+	float AbortDuration = 0.5f;   // 1초 안에 0까지 좁힘
 };	

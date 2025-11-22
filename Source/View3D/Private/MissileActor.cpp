@@ -446,3 +446,17 @@ void AMissileActor::AbortChange()
 	}
 	
 }
+
+void AMissileActor::TelemetryChange(uint8 TelemetryByte)
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC) return;
+
+	AMonitorPlayerController* MPC = Cast<AMonitorPlayerController>(PC);
+	if (!MPC) return;
+
+	UWBP_MissileMonitorBase* WBP = MPC->GetMonitorWidget();
+	if (!WBP) return;
+
+	WBP->UpdateTelemetry(MissileID,TelemetryByte);
+}

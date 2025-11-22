@@ -57,5 +57,8 @@ public:
 	void UpdateTargetDistance(int ID, float Distance,float yaw);
 
 	UFUNCTION(BlueprintCallable)
+	void UpdateTelemetry(int ID, uint8 TelemetryByte);
+
+	UFUNCTION(BlueprintCallable)
 	void Explode(int ID);
 };

@@ -89,6 +89,13 @@ void AMissileManager::UpdateTargetDistance(int ID, float Distance,float yaw)
     Missile->UpdateTarget(Distance,yaw);
     
 }
+void AMissileManager::UpdateTelemetry(int ID, uint8 TelemetryByte)
+{
+    AMissileActor* Missile = GetMissileByID(ID);
+    if (Missile == nullptr)return;
+    Missile->TelemetryChange(TelemetryByte);
+
+}
 void AMissileManager::TerminalMissile(int ID)
 {
 
