@@ -34,7 +34,7 @@ AMissileActor::AMissileActor()
 		CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Capture"));
 	MisslieCaptureComponent->SetupAttachment(CameraComp);
 
-	CameraComp->SetRelativeLocation(FVector(-800.f, 0.f, 300.f));
+	CameraComp->SetRelativeLocation(FVector(-800.f, 0.f, 270.f));
 	CameraComp->SetRelativeRotation(FRotator(-20.f, 0, 0));
 
 	MisslieCaptureComponent->PostProcessSettings.bOverride_ColorSaturation = true;

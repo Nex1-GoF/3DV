@@ -153,6 +153,12 @@ void UUdpReceiverComponent::OnUdpMessageReceived(
         float Yaw = Packet.MslYaw * 0.01f;
         float Dist = Packet.TargetDistance;
         float TargetYaw = Packet.TargetYaw;
+        uint8 tel = Packet.TelemetryStatus;
+        AsyncTask(ENamedThreads::GameThread, [this, ID, tel]()
+            {
+                CachedManager->UpdateTelemetry(ID, tel);
+            });
+
         if (Packet.FlightStatus == 4) {
 
             AsyncTask(ENamedThreads::GameThread, [this, ID, Dist, TargetYaw]()
@@ -163,8 +169,7 @@ void UUdpReceiverComponent::OnUdpMessageReceived(
             return;
         }
         CachedManager->ApplyAttitude(ID, 0.f, Yaw);
-        uint8 tel=Packet.TelemetryStatus;
-        CachedManager->UpdateTelemetry(ID, tel);
+        
         //CachedManager->UpdateTargetDistance(ID, Dist);
     }
 

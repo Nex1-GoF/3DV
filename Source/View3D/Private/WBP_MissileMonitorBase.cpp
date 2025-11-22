@@ -130,9 +130,13 @@ FORCEINLINE bool GetBit(uint8 Byte, int32 BitIndex)
 void UWBP_MissileMonitorBase::UpdateTelemetry(uint8 Id, uint8 TelemetryByte)
 {
 	bool bSeeker = GetBit(TelemetryByte, 0); // 1번 비트
-	bool bDL = GetBit(TelemetryByte, 1); // 2번 비트
-	bool bTDD = GetBit(TelemetryByte, 2); // 3번 비트
+	bool bTDD = GetBit(TelemetryByte, 1); // 2번 비트
+	bool bDL = GetBit(TelemetryByte, 2); // 3번 비트
 
+	UE_LOG(LogTemp, Error, TEXT("TelemetryByte %d"), TelemetryByte);
+	if (bSeeker)UE_LOG(LogTemp, Error, TEXT("Seekeron"));
+	if (bTDD)UE_LOG(LogTemp, Error, TEXT("bTDD"));
+	if (bDL)UE_LOG(LogTemp, Error, TEXT("bDL"));
 	UImage* Target1 = nullptr;
 	UImage* Target2 = nullptr;
 	UImage* Target3 = nullptr;
@@ -168,6 +172,6 @@ void UWBP_MissileMonitorBase::UpdateTelemetry(uint8 Id, uint8 TelemetryByte)
 	}
 
 	if (Target1) Target1->SetBrushFromTexture(bSeeker ? GreenTexture : RedTexture);
-	if (Target2) Target2->SetBrushFromTexture(bDL ? GreenTexture : RedTexture);
-	if (Target3) Target3->SetBrushFromTexture(bTDD ? GreenTexture : RedTexture);
+	if (Target2) Target2->SetBrushFromTexture(bTDD ? GreenTexture : RedTexture);
+	if (Target3) Target3->SetBrushFromTexture(bDL ? GreenTexture : RedTexture);
 }
