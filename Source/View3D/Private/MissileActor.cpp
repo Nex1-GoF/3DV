@@ -443,6 +443,22 @@ void AMissileActor::AbortChange()
 	}
 	else {
 		UE_LOG(LogTemp, Error, TEXT("bAbortMotion fail"));
+		if (ExplosionFX && ForwardComp)
+		{
+			FVector SpawnLoc = ForwardComp->GetComponentLocation();
+			FRotator SpawnRot = ForwardComp->GetComponentRotation();
+			FVector SpawnScale(5.f, 5.f, 5.f);
+
+			UGameplayStatics::SpawnEmitterAtLocation(
+				GetWorld(),
+				ExplosionFX,
+				SpawnLoc,
+				SpawnRot,
+				SpawnScale,
+				true
+			);
+		}
+		NoSignalChange();
 	}
 	
 }
